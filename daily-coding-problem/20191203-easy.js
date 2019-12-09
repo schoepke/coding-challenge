@@ -27,13 +27,15 @@ const a = [10, 15, 3, 7];
 const k = 17;
 console.log('adds up:', addsUpAllSums(a, k));
 // performance test: map+some is faster
-console.time("mapSome");
-for (let index = 0; index < 1000000; index++) {
-    addsUp(a, k);
-}
-console.timeEnd("mapSome");
-console.time("allSums");
-for (let index = 0; index < 1000000; index++) {
-    addsUpAllSums(a, k)
-}
-console.timeEnd("allSums");
+// const hrstart = process.hrtime();
+// for (let index = 0; index < 1e6; index++) {
+//     addsUp(a, k);
+// }
+// const hrend = process.hrtime(hrstart);
+// console.log('Execution time (hr): %dms', (hrend[1] * 1e-6).toFixed(3));
+// const hrstart2 = process.hrtime();
+// for (let index = 0; index < 1e6; index++) {
+//     addsUpAllSums(a, k)
+// }
+// const hrend2 = process.hrtime(hrstart2);
+// console.log('Execution time (hr): %dms', (hrend2[1] * 1e-6).toFixed(3));
