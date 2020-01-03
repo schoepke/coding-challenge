@@ -88,14 +88,14 @@ const templates = [
 ];
 let res;
 try {
-    const urlSpec = resolver.parseURL(urls[8]);
+    const urlSpec = resolver.parseURL(urls[6]);
     console.log(urlSpec);
     try {
-        const pathRegexp = resolver.templateToRegexp(templates[6]);
+        const pathRegexp = resolver.templateToRegexp(templates[4]);
         // console.log(pathRegexp);
         const pathParameters = resolver.matchPath(urlSpec.path, pathRegexp);
         console.log(pathParameters);
-        res = pathParameters ? Object.assign({}, urlSpec, { parameters: pathParameters }) : {};
+        res = pathParameters ? { ...urlSpec, ...{ parameters: pathParameters } } : {};
     } catch (err) {
         console.log(err);
         // throw Error('Route error: ' + err.message);
