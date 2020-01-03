@@ -1,89 +1,110 @@
-// const _ = require('lodash');
+const OPTIONAL_PART_REGEXP = /\[[^\[\]]+\]/g; // matches all path params in square backets
 
-const URL_REGEX = /(https?):\/\/(www\.?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b([-a-zA-Z0-9@:%_\+.~#()?&//=]*)/igm;
-// const PATH_REGEX = /\b([-a-zA-Z0-9@:%_\+.~#()?&//=]*)/igm;
-const BASE_REGEX =    /^\/?$/i;
-const PATH_REGEX =    /^\/?(?:([^\/]+?))\/products\/(?:([^\/]+?))\/?$/i;
-const COMPARE_REGEX = /^\/(?:([^\/]+?))\/products\/(?:([^\/]+?))\/compare\/(?:([^\/]+?))\/?$/i;
-const IMAGES_REGEX =  /^\/(?:([^\/]+?))\/products\/(?:([^\/]+?))\/images\/?$/i;
+const VALID_PATH_SEGMENTS = [
+    'products',
+    'compare',
+    'images',
+]
+
+const VALID_PATH_PARAMETERS = [
+    'lang',
+    'id',
+    'compareId',
+    'imageId',
+]
 
 class Resolver {
     parseURL(url) {
-        // let match = URL_REGEX.exec(url);
-        // if (match === null) throw Error('invalid URL');
-        // console.log('match:', match);
-        // return {
-        //     scheme: match[1],
-        //     host: match[2],
-        //     path: match[3],
-        // }
         const parsedURL = new URL(url);
         return {
-            scheme: parsedURL.protocol,
+            scheme: parsedURL.protocol.slice(0, -1),
             host: parsedURL.host,
             path: parsedURL.pathname,
         }
     }
-    templateToRegex(template) {
-        let parts = template.split('/');
-        // console.log(parts);
-        let regexParts = parts.map(part => {
+    filterOptionalParts(template) {
+        return template.replace(OPTIONAL_PART_REGEXP, '');
+    }
+    templateToRegexp(template) {
+        console.log('template:', template);
+        if (template == null || template.trim().length === 0) throw Error('invalid route');
+        const filteredTemplate = this.filterOptionalParts(template);
+        console.log('filteredTemplate:', filteredTemplate);
+        const parts = filteredTemplate.split('/');
+        const regexParts = parts.map(part => {
             let p = '';
             if (part.length === 0) {
                 p += '\\/?';
             } else if (part[0] === ':') {
-                console.log('creating named capturing group for path parameter', part);
-                let paramName = part.substring(1, part.length);
+                const paramName = part.slice(1);
+                console.log('creating named capturing group for path parameter:', paramName);
+                if (!VALID_PATH_PARAMETERS.includes(paramName)) throw Error(`invalid route path parameter: "${paramName}"`);
                 p += `(?<${paramName}>[^\/]+)\\/`;
             } else {
-                console.log('creating non-capturing group for fixed path segment', part);
+                console.log('creating non-capturing group for fixed path segment:', part);
+                if (!VALID_PATH_SEGMENTS.includes(part)) throw Error(`invalid route path segment: "${part}"`);
                 p += '([^\/]+)\\/';
             }
             return p;
         });
-        // console.log(regexParts);
-        let regex = '^' + regexParts.join('') + '?$';
-        return regex;
+        return '^' + regexParts.join('') + '?$';
     }
-    matchPath(path, pathRegex) {
-        console.log('trying to match path:', path, 'with template regex', pathRegex);
-        let regex = new RegExp(pathRegex);
-        let match = regex.exec(path);
-        let { groups } = regex.exec(path);
+    matchPath(path, pathRegexp) {
+        // console.log('trying to match path:', path, 'with template regexp', pathRegexp);
+        const regexp = new RegExp(pathRegexp);
+        const match = regexp.exec(path);
         // console.log('match:', match);
-        if (match === null) return {};
-        console.log(match[1]);
-        console.log(match[2]);
-        console.log(Object.entries(groups));
-        // return {
-        //     scheme: match[1],
-        //     host: match[2],
-        //     path: match[3],
-        // }
-        return groups;
+        return match ? { ...match.groups } : undefined;
     }
 }
 
 const resolver = new Resolver();
-// const urlSpec = resolver.parseURL('http://www.google.com');
-// const urlSpec = resolver.parseURL('http://www.google.com/de?qp1=v1');
-// const urlSpec = resolver.parseURL('https://www.google.com');
-// const urlSpec = resolver.parseURL('https://www.expertlead.com');
-// const urlSpec = resolver.parseURL('https://www.expertlead.com/de');
-// const urlSpec = resolver.parseURL('https://www.expertlead.com/de/products');
-const urlSpec = resolver.parseURL('https://www.expertlead.com/de/products/123');
-console.log(urlSpec);
+const urls = [
+    'htt//www.invalid.url',
+    'https://www.expertlead.com',
+    'https://www.expertlead.com/',
+    'https://www.expertlead.com/de',
+    'https://www.expertlead.com/de/products',
+    'https://www.expertlead.com/de/products/123',
+    'https://www.expertlead.com/de/products/123/compare/456',
+    'https://www.expertlead.com/de/products/123/images',
+    'https://www.expertlead.com/de/products/123/images/789',
+    'non-url-string', // 9
+];
 const templates = [
     '/',
     '/:lang',
     '/:lang/products',
     '/:lang/products/:id',
     '/:lang/products/:id/compare/:compareId',
+    '/:lang/products/:id/images',
     '/:lang/products/:id/images[/:imageId]',
+    '',
+    ' ',
+    null,
+    undefined, // 10
+    '/:lang/product/:id',
+    '/:lang/products/:productId',
 ];
-let pathRegex = resolver.templateToRegex(templates[3]);
-console.log(pathRegex);
-const pathSpec = resolver.matchPath(urlSpec.path, pathRegex);
-// console.log(pathSpec);
-const res = Object.assign({}, urlSpec, { parameters: pathSpec });
+let res;
+try {
+    const urlSpec = resolver.parseURL(urls[8]);
+    console.log(urlSpec);
+    try {
+        const pathRegexp = resolver.templateToRegexp(templates[6]);
+        // console.log(pathRegexp);
+        const pathParameters = resolver.matchPath(urlSpec.path, pathRegexp);
+        console.log(pathParameters);
+        res = pathParameters ? Object.assign({}, urlSpec, { parameters: pathParameters }) : {};
+    } catch (err) {
+        console.log(err);
+        // throw Error('Route error: ' + err.message);
+        res = {};
+    }
+} catch (err) {
+    console.log(err);
+    // throw Error('URL parse error: ' + err.message);
+    res = {};
+}
 console.log(res);
+// console.log(JSON.stringify(res));
