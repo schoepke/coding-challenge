@@ -5,9 +5,33 @@
 // Start with tests or implementation, whatever is better for you.
 
 const calculateDistance = (coord1, coord2) => {
-    let distance;
-    distance = Math.sqrt(Math.pow(coord2.x - coord1.x, 2) + Math.pow(coord2.y - coord1.y, 2));
-    return distance;
+    return Math.sqrt(Math.pow(coord2.x - coord1.x, 2) + Math.pow(coord2.y - coord1.y, 2));
+}
+
+const calculateDistance2 = (coord1, coord2) => {
+    return Math.pow(coord2.x - coord1.x, 2) + Math.pow(coord2.y - coord1.y, 2);
+}
+
+const calculateDistances = coords => {
+    let distances = [];
+    coords.forEach((coord1, index) => {
+        coords.forEach((coord2, index2) => {
+            if (index2 > index) {
+                // we can skip the sqrt, as the squared distance is enough to determine the min/max
+                const dist = calculateDistance2(coord1, coord2);
+                distances.push({ coord1, coord2, dist });
+            };
+        });
+    });
+    return distances;
+}
+
+const determineMinMaxDistance = distances => {
+    const sorted = distances.sort((o1, o2) => o1.dist - o2.dist);
+    const maxIndex = sorted.length - 1;
+    const shortest = [ sorted[0].coord1, sorted[0].coord2 ];
+    const longest = [ sorted[maxIndex].coord1, sorted[maxIndex].coord2 ];
+    return { shortest, longest };
 }
 
 const main = () => {
@@ -17,21 +41,8 @@ const main = () => {
         { x: 3, y: 2 },
         { x: 5, y: 1 },
     ];
-
-    let distances = [];
-    coords.forEach((coord1, index) => {
-        coords.forEach((coord2, index2) => {
-            if (index2 > index) {
-                const d = calculateDistance(coord1, coord2);
-                distances.push({ c1: coord1, c2: coord2, dist: d });
-            };
-        });
-    });
-    
-    const sorted = distances.sort((o1, o2) => o1.dist - o2.dist);
-    const shortest = [ sorted[0].c1, sorted[0].c2 ];
-    const longest = [ sorted[sorted.length - 1].c1, sorted[sorted.length - 1].c2 ];
-    return { shortest, longest };
+    const distances = calculateDistances(coords);
+    return determineMinMaxDistance(distances);
 }
 
 const res = main();
